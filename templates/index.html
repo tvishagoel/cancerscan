@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>CellScan — Breast Cancer Detector</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;background:#080810;color:#e0e0f0;min-height:100vh}
+
+header{background:linear-gradient(135deg,#0e0e24,#180e38);border-bottom:1px solid #22224a;padding:18px 36px;display:flex;align-items:center;gap:14px}
+.logo{font-size:30px}
+header h1{font-size:21px;font-weight:700;color:#fff}
+header p{font-size:12px;color:#6666aa;margin-top:2px}
+.badge{background:#1e1245;border:1px solid #5535d0;border-radius:20px;padding:3px 11px;font-size:10px;color:#bb99ff;margin-left:8px;vertical-align:middle}
+
+main{max-width:880px;margin:32px auto;padding:0 22px}
+
+.card{background:#0f0f1e;border:1px solid #202040;border-radius:16px;padding:28px;margin-bottom:20px}
+.card-title{font-size:14px;font-weight:600;color:#b0b0d0;margin-bottom:18px;display:flex;align-items:center;gap:8px}
+
+.how-box{background:#0a0a16;border:1px solid #1c1c36;border-radius:12px;padding:18px 22px;margin-bottom:0}
+.how-box h3{font-size:13px;font-weight:600;color:#9999cc;margin-bottom:12px}
+.how-steps{display:flex;flex-direction:column;gap:10px}
+.hs{display:flex;align-items:flex-start;gap:12px;font-size:12px;color:#7777aa;line-height:1.55}
+.hs-num{width:22px;height:22px;border-radius:50%;background:#2a2a70;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#9999ff;flex-shrink:0;margin-top:1px}
+.hs strong{color:#aaaacc}
+
+.why-box{background:#0a100a;border:1px solid #1a3a1a;border-left:3px solid #44aa44;border-radius:10px;padding:14px 18px;margin-top:14px;font-size:12px;color:#669966;line-height:1.65}
+.why-box strong{color:#88cc88}
+
+.upload-zone{border:2px dashed #28285a;border-radius:16px;padding:52px 24px;text-align:center;cursor:pointer;transition:all .2s;position:relative;margin-bottom:20px}
+.upload-zone:hover,.upload-zone.over{border-color:#6655f0;background:#141430}
+.upload-zone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%}
+.up-icon{font-size:46px;margin-bottom:13px}
+.upload-zone h3{font-size:16px;font-weight:600;color:#a0a0cc;margin-bottom:5px}
+.upload-zone p{font-size:12px;color:#44447a}
+.chosen{font-size:12px;color:#55ee55;margin-top:9px;font-weight:500}
+
+.btn-run{width:100%;padding:15px;background:linear-gradient(135deg,#3838ee,#7020e0);border:none;border-radius:12px;color:#fff;font-size:15px;font-weight:600;cursor:pointer;transition:opacity .18s,transform .1s}
+.btn-run:hover{opacity:.88;transform:translateY(-1px)}
+.btn-run:disabled{opacity:.28;cursor:not-allowed;transform:none}
+
+#loading{display:none;text-align:center;padding:50px 22px}
+.spin{width:50px;height:50px;border:4px solid #1a1a38;border-top-color:#5040ee;border-radius:50%;animation:spin .8s linear infinite;margin:0 auto 16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+#loading p{color:#5555aa;font-size:14px}
+.step-list{margin-top:14px;display:flex;flex-direction:column;gap:5px}
+.sl{font-size:11px;color:#33335a;text-align:center;transition:color .3s}
+.sl.active{color:#7070cc}
+.sl.done{color:#338833}
+
+#results{display:none}
+
+.verdict{border-radius:12px;padding:20px 24px;margin-bottom:20px;display:flex;align-items:center;gap:16px}
+.v-healthy {background:#091409;border:1px solid #1a4a1a}
+.v-mild    {background:#141208;border:1px solid #4a3a10}
+.v-abnormal{background:#140909;border:1px solid #4a1a1a}
+.v-icon{font-size:32px}
+.v-title{font-size:17px;font-weight:700}
+.v-healthy  .v-title{color:#44dd44}
+.v-mild     .v-title{color:#ffcc33}
+.v-abnormal .v-title{color:#ff5555}
+.v-sub{font-size:12px;color:#7777aa;margin-top:4px;line-height:1.5}
+
+.stats-row{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px}
+@media(max-width:540px){.stats-row{grid-template-columns:1fr 1fr}}
+.stat{background:#0a0a16;border:1px solid #1c1c38;border-radius:12px;padding:16px;text-align:center}
+.stat.ok  {border-color:#143014;background:#091409}
+.stat.bad {border-color:#381414;background:#140909}
+.stat-n{font-size:32px;font-weight:800}
+.stat-l{font-size:10px;color:#55558a;margin-top:3px;text-transform:uppercase;letter-spacing:.4px}
+.stat.ok .stat-n{color:#44dd44}
+.stat.bad .stat-n{color:#ff5555}
+.stat     .stat-n{color:#7788ff}
+
+.ai-box{background:#0c0c20;border:1px solid #26265a;border-left:3px solid #5050f0;border-radius:10px;padding:15px 18px;margin-bottom:16px}
+.ai-lbl{font-size:10px;color:#5050f0;font-weight:700;text-transform:uppercase;letter-spacing:.6px;margin-bottom:7px}
+.ai-off{background:#0d0d1e;border:1px solid #22224a;border-radius:10px;padding:13px 16px;margin-bottom:16px;font-size:12px;color:#44447a;line-height:1.6}
+.ai-off code{background:#16163a;padding:2px 6px;border-radius:4px;color:#7777cc;font-size:11px}
+
+.legend{display:flex;gap:18px;margin-bottom:12px;flex-wrap:wrap}
+.leg{display:flex;align-items:center;gap:7px;font-size:12px;color:#66667a}
+.ldot{width:11px;height:11px;border-radius:50%;border:2px solid}
+.ldot.g{border-color:#44dd44}.ldot.r{border-color:#ff4444}
+
+.img-wrap{border-radius:12px;overflow:hidden;border:1px solid #1e1e3a;margin-bottom:14px}
+.img-wrap img{width:100%;display:block}
+
+.dl-row{display:flex;gap:10px;flex-wrap:wrap}
+.btn-dl{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;background:#111124;border:1px solid #26265a;border-radius:10px;color:#7777cc;font-size:12px;text-decoration:none;transition:background .18s}
+.btn-dl:hover{background:#181838}
+
+#err{display:none;background:#180a0a;border:1px solid #581c1c;border-radius:10px;padding:13px 16px;color:#ff8888;margin-top:10px;font-size:13px;line-height:1.6}
+
+footer{text-align:center;padding:24px;color:#24244a;font-size:11px}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">🔬</div>
+  <div>
+    <h1>CellScan <span class="badge">v5 · Reliable</span></h1>
+    <p>Upload one image · Auto cell detection · No CSV needed · Breast cells only</p>
+  </div>
+</header>
+
+<main>
+
+<div class="card">
+  <div class="card-title">⚙️ How it works</div>
+  <div class="how-box">
+    <div class="how-steps">
+      <div class="hs"><div class="hs-num">1</div><div><strong>Segment cells</strong> — Gaussian smoothing → Otsu threshold → Watershed (same algorithms as CellProfiler)</div></div>
+      <div class="hs"><div class="hs-num">2</div><div><strong>Measure 12 AreaShape features</strong> per cell: area, eccentricity, solidity, perimeter, compactness and more</div></div>
+      <div class="hs"><div class="hs-num">3</div><div><strong>Within-image outlier detection</strong> — finds cells that look different from all OTHER cells in the same image using IsolationForest + Tukey's fence rule</div></div>
+      <div class="hs"><div class="hs-num">4</div><div><strong>Flag suspects</strong> — only cells that are extreme outliers (Tukey fence: Q1 − 2×IQR) get flagged. Borderline cells stay green.</div></div>
+    </div>
+  </div>
+  <div class="why-box">
+    ✅ <strong>Why this is reliable:</strong> Healthy tissue = all cells look similar to each other → no outliers → all green. Cancer tissue = cancer cells look different from surrounding healthy cells → those specific cells get flagged red. No external reference needed — no domain mismatch.
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">📤 Upload your breast cell image</div>
+  <div class="upload-zone" id="iz">
+    <input type="file" id="img-inp" accept=".png,.jpg,.jpeg,.tif,.tiff"/>
+    <div class="up-icon">🖼️</div>
+    <h3>Drop image here or click to browse</h3>
+    <p>PNG · JPG · TIF · Breast tissue microscopy images only</p>
+    <div class="chosen" id="img-name"></div>
+  </div>
+  <button class="btn-run" id="run-btn" disabled onclick="analyze()">🧬 Analyze</button>
+  <div id="err"></div>
+</div>
+
+<div id="loading">
+  <div class="spin"></div>
+  <p>Analyzing your image...</p>
+  <div class="step-list">
+    <div class="sl" id="sl1">Segmenting cells (Gaussian → Otsu → Watershed)</div>
+    <div class="sl" id="sl2">Measuring 12 AreaShape features per cell</div>
+    <div class="sl" id="sl3">Running within-image outlier detection</div>
+    <div class="sl" id="sl4">Drawing highlights</div>
+  </div>
+</div>
+
+<div id="results">
+  <div class="card">
+    <div class="card-title">📊 Results</div>
+    <div id="verdict-box"></div>
+    <div class="stats-row">
+      <div class="stat">    <div class="stat-n" id="s-tot">—</div><div class="stat-l">Cells found</div></div>
+      <div class="stat ok"> <div class="stat-n" id="s-hlt">—</div><div class="stat-l">Healthy</div></div>
+      <div class="stat bad"><div class="stat-n" id="s-sus">—</div><div class="stat-l">Suspects</div></div>
+    </div>
+    <div id="ai-section"></div>
+    <div class="legend">
+      <div class="leg"><div class="ldot g"></div>Healthy</div>
+      <div class="leg"><div class="ldot r"></div>Cancer suspect · % = suspicion score</div>
+    </div>
+    <div class="img-wrap"><img id="res-img" src="" alt=""/></div>
+    <div class="dl-row">
+      <a class="btn-dl" id="dl-img" href="#">⬇️ Download image</a>
+      <a class="btn-dl" id="dl-csv" href="#">⬇️ Download CSV</a>
+    </div>
+  </div>
+</div>
+
+</main>
+<footer>⚠️ Research prototype · Not a clinical diagnostic tool · Breast tissue images only</footer>
+
+<script>
+const imgInp=document.getElementById("img-inp");
+const runBtn=document.getElementById("run-btn");
+imgInp.addEventListener("change",()=>{
+  document.getElementById("img-name").textContent=imgInp.files[0]?"✓ "+imgInp.files[0].name:"";
+  runBtn.disabled=!imgInp.files.length;
+});
+const iz=document.getElementById("iz");
+iz.addEventListener("dragover",e=>{e.preventDefault();iz.classList.add("over")});
+iz.addEventListener("dragleave",()=>iz.classList.remove("over"));
+iz.addEventListener("drop",e=>{e.preventDefault();iz.classList.remove("over");imgInp.files=e.dataTransfer.files;imgInp.dispatchEvent(new Event("change"));});
+
+let timer;
+function startSteps(){
+  const ids=["sl1","sl2","sl3","sl4"];
+  let i=0;
+  timer=setInterval(()=>{
+    if(i>0)document.getElementById(ids[i-1]).className="sl done";
+    if(i<ids.length)document.getElementById(ids[i]).className="sl active";
+    i++;if(i>ids.length)clearInterval(timer);
+  },1800);
+}
+
+async function analyze(){
+  document.getElementById("err").style.display    ="none";
+  document.getElementById("results").style.display="none";
+  document.getElementById("loading").style.display="block";
+  ["sl1","sl2","sl3","sl4"].forEach(id=>document.getElementById(id).className="sl");
+  runBtn.disabled=true;
+  startSteps();
+
+  const fd=new FormData();
+  fd.append("image",imgInp.files[0]);
+
+  try{
+    const res=await fetch("/analyze",{method:"POST",body:fd});
+    const d=await res.json();
+    clearInterval(timer);
+    document.getElementById("loading").style.display="none";
+
+    if(!d.success){
+      const e=document.getElementById("err");e.textContent="Error: "+d.error;e.style.display="block";
+      runBtn.disabled=false;return;
+    }
+
+    const vmap={
+      "healthy":         {cls:"v-healthy", icon:"✅", title:"Sample looks healthy", sub:`${d.healthy_pct}% of cells are normal · No significant outliers detected`},
+      "mildly_abnormal": {cls:"v-mild",    icon:"⚠️", title:"Mild abnormality", sub:`${d.suspect_pct}% of cells are morphological outliers · Worth monitoring`},
+      "abnormal":        {cls:"v-abnormal",icon:"🔴", title:"Significant abnormality detected", sub:`${d.suspect_pct}% of cells are extreme outliers · Suspicious morphology`},
+    };
+    const v=vmap[d.verdict]||vmap["healthy"];
+    document.getElementById("verdict-box").innerHTML=
+      `<div class="verdict ${v.cls}"><div class="v-icon">${v.icon}</div><div><div class="v-title">${v.title}</div><div class="v-sub">${v.sub}</div></div></div>`;
+
+    document.getElementById("s-tot").textContent=d.total;
+    document.getElementById("s-hlt").textContent=d.healthy+" ("+d.healthy_pct+"%)";
+    document.getElementById("s-sus").textContent=d.suspects+" ("+d.suspect_pct+"%)";
+
+    const imgUrl=d.result_image+"?t="+Date.now();
+    document.getElementById("res-img").src=imgUrl;
+    document.getElementById("dl-img").href=imgUrl;
+    document.getElementById("dl-csv").href=d.result_csv;
+
+    const ai=document.getElementById("ai-section");
+    if(d.ai_enabled&&d.ai){
+      ai.innerHTML=`<div class="ai-box"><div class="ai-lbl">🤖 Claude AI</div><div style="font-size:13px;line-height:1.75;color:#a8a8cc">${d.ai}</div></div>`;
+    }else{
+      ai.innerHTML=`<div class="ai-off">💡 Enable Claude AI: run <code>export ANTHROPIC_API_KEY="your-key"</code> · Free key at <code>console.anthropic.com</code></div>`;
+    }
+
+    document.getElementById("results").style.display="block";
+    document.getElementById("results").scrollIntoView({behavior:"smooth"});
+    runBtn.disabled=false;
+  }catch(e){
+    clearInterval(timer);
+    document.getElementById("loading").style.display="none";
+    const eb=document.getElementById("err");eb.textContent="Error: "+e.message;eb.style.display="block";
+    runBtn.disabled=false;
+  }
+}
+</script>
+</body>
+</html>
